@@ -12,7 +12,6 @@ CHOWN=/usr/bin/chown
 CS=/usr/bin/cryptsetup
 DD=/usr/bin/dd
 EXT4=/usr/bin/mkfs.ext4
-ID=/usr/bin/id
 SU=/usr/bin/sudo
 UDISKS=/usr/bin/udisks
 
@@ -46,7 +45,7 @@ msg() {
 }
 
 usage() {
-  msg white usage "$@"
+  msg white usage "$(basename $0) $@"
   error
 }
 
@@ -117,6 +116,6 @@ $SU $UDISKS --mount $MAP
 
 MOUNTPOINT=$($UDISKS --show-info $MAP | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
 inform "Setting mountpoint permissions on '$MOUNTPOINT'"
-USER=$($ID -u -n)
-GROUP=$($ID -g -n)
+USER=$(id -u -n)
+GROUP=$(id -g -n)
 $SU $CHOWN $USER:$GROUP $MOUNTPOINT
