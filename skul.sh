@@ -43,7 +43,8 @@ usage() {
 }
 
 inform() {
-  msg green "$@"
+  echo
+  msg green "$@ ..."
 }
 
 error() {
