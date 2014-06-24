@@ -1,4 +1,12 @@
 #!/bin/bash
+#
+# Name: skul
+# Auth: Gavin Lloyd <gavinhungry@gmail.com>
+# Desc: Create, format and mount loopback-based, encrypted LUKS containers
+#
+# Released under the terms of the MIT license
+# https://github.com/gavinhungry/skul
+#
 
 CHOWN=/usr/bin/chown
 CS=/usr/bin/cryptsetup

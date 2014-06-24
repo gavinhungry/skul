@@ -1,7 +1,7 @@
 skul
 ====
-Quickly create, format and mount a loopback-based encrypted
-[LUKS](https://code.google.com/p/cryptsetup) container.
+Create, format and mount loopback-based, encrypted
+[LUKS](https://code.google.com/p/cryptsetup) containers.
 
 
 Usage
