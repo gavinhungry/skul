@@ -1,10 +1,12 @@
 #!/bin/bash
 
+CHOWN=/usr/bin/chown
 CS=/usr/bin/cryptsetup
 DD=/usr/bin/dd
 EXT4=/usr/bin/mkfs.ext4
-UDISKS=/usr/bin/udisks
+ID=/usr/bin/id
 SU=/usr/bin/sudo
+UDISKS=/usr/bin/udisks
 
 ZERO=/dev/zero
 
@@ -41,7 +43,7 @@ usage() {
 }
 
 inform() {
-  msg green "\n$@"
+  msg green "$@"
 }
 
 error() {
@@ -52,6 +54,8 @@ error() {
 clean() {
   echo $1 | sed -e 's/[^[:alnum:]]/_/g' | tr -s '_' | tr A-Z a-z
 }
+
+$SU -v || exit 1
 
 if [ $# -lt 2 ]; then
   usage 'FILENAME SIZE [KEYFILE]'
@@ -65,6 +69,7 @@ KEY=$3
 MAPID="skul-$(clean $CONTAIN)"
 MAP=$MAPPER/$MAPID
 
+[ -e $CONTAIN ] && error "Container '${CONTAIN}' already exists"
 [ -b $MAP ] && error "$MAP is already mapped"
 [ "$KEY" == "$CONTAIN" ] && error 'Key and container cannot be the same file'
 [[ "$KEY" && ( ! -f "$KEY" || ! -r "$KEY" ) ]] && error 'Cannot read key'
@@ -91,7 +96,7 @@ fi
 
 inform "Writing encrypted zeroes to '$MAPID'"
 $SU $DD if=$ZERO of=$MAP bs=1M
-[ $? -eq 0 ] || error 'Error writing encrypted zeros'
+# [ $? -eq 0 ] || error 'Error writing encrypted zeros'
 
 inform "Creating filesytem on '$MAPID'"
 $SU $EXT4 $MAP -L $MAPID
@@ -100,3 +105,9 @@ $SU $EXT4 $MAP -L $MAPID
 inform "Mounting '$MAPID'"
 $SU $UDISKS --mount $MAP
 [ $? -eq 0 ] || error 'Error mounting'
+
+MOUNTPOINT=$($UDISKS --show-info $MAP | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
+inform "Setting mountpoint permissions on '$MOUNTPOINT'"
+USER=$($ID -u -n)
+GROUP=$($ID -g -n)
+$SU $CHOWN $USER:$GROUP $MOUNTPOINT
