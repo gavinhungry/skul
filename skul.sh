@@ -1,12 +1,16 @@
 #!/bin/bash
 
-# cryptsetup
-CRYPTSETUP=/usr/bin/cryptsetup
-CS="sudo $CRYPTSETUP"
+CS=/usr/bin/cryptsetup
+DD=/usr/bin/dd
+EXT4=/usr/bin/mkfs.ext4
+UDISKS=/usr/bin/udisks
+SU=/usr/bin/sudo
+
+ZERO=/dev/zero
 
 # defaults
 CIPHER=aes-xts-plain64
-SIZE=256
+KEYSIZE=256
 HASH=sha512
 ITER=2000
 
@@ -15,9 +19,9 @@ MAPPER=/dev/mapper
 msg() {
   case $1 in
     'red')    color=31 ;;
-    'yellow') color=33 ;;
+    'green')  color=32 ;;
     'white')  color=37 ;;
-    '*')      color=37 ;;
+    '*')      color=37 ;; # default to white
   esac
 
   TITLE=$2
@@ -28,7 +32,21 @@ msg() {
     MSG=$2
   fi
 
-  echo -e "\e[1;${color}m${TITLE}\e[0m: ${MSG}"
+  [ -n "$MSG" ] && echo -e "\e[1;${color}m${TITLE}\e[0m: ${MSG}"
+}
+
+usage() {
+  msg white usage "$@"
+  error
+}
+
+inform() {
+  msg green "\n$@"
+}
+
+error() {
+  msg red "$@"
+  exit 1
 }
 
 clean() {
@@ -36,29 +54,49 @@ clean() {
 }
 
 if [ $# -lt 2 ]; then
-  msg white usage 'FILENAME SIZE [KEYFILE]'
+  usage 'FILENAME SIZE [KEYFILE]'
   exit 1
 fi
 
-FILENAME=$1
+CONTAIN=$1
 SIZE=$2
-KEYFILE=$3
+KEY=$3
 
-ID="skul-$(clean $FILENAME)"
+MAPID="skul-$(clean $CONTAIN)"
+MAP=$MAPPER/$MAPID
 
-ID='mozzy'
+[ -b $MAP ] && error "$MAP is already mapped"
+[ "$KEY" == "$CONTAIN" ] && error 'Key and container cannot be the same file'
+[[ "$KEY" && ( ! -f "$KEY" || ! -r "$KEY" ) ]] && error 'Cannot read key'
 
-if [ -b $MAPPER/$ID ]; then
-  msg red "$ID is already mapped"
-  exit 1
-fi
+inform "Creating container '$CONTAIN'"
+$DD if=$ZERO of=$CONTAIN bs=1M count=$SIZE
+[ $? -eq 0 ] || error 'Error creating container'
 
-exit 1
-
-if [ $KEYFILE -a -f $KEYFILE -a -r $KEYFILE ]; then
-  echo $CS luksCreate $FILENAME -c $CIPHER -s $SIZE -h $HASH -i $ITER -d $KEYFILE
+inform "Encrypting container '$CONTAIN'"
+if [ -n "$KEY" ]; then
+  $SU $CS luksFormat $CONTAIN -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER -d "$KEY"
 else
-  echo $CS luksCreate $FILENAME -c $CIPHER -s $SIZE -h $HASH -i $ITER
+  $SU $CS luksFormat $CONTAIN -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER
 fi
+[ $? -eq 0 ] || error 'Error encrypting container'
 
-echo $CS luksOpen $FILENAME
+inform "Opening container '$CONTAIN'"
+if [ -n "$KEY" ]; then
+  $SU $CS luksOpen $CONTAIN $MAPID -d "$KEY"
+else
+  $SU $CS luksOpen $CONTAIN $MAPID
+fi
+[ $? -eq 0 ] || error 'Error opening container'
+
+inform "Writing encrypted zeroes to '$MAPID'"
+$SU $DD if=$ZERO of=$MAP bs=1M
+[ $? -eq 0 ] || error 'Error writing encrypted zeros'
+
+inform "Creating filesytem on '$MAPID'"
+$SU $EXT4 $MAP -L $MAPID
+[ $? -eq 0 ] || error 'Error creating filesystem'
+
+inform "Mounting '$MAPID'"
+$SU $UDISKS --mount $MAP
+[ $? -eq 0 ] || error 'Error mounting'
