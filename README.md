@@ -19,8 +19,9 @@ Usage
     skul: Mounting 'skul-private' ...
     skul: Setting mountpoint permissions on '/media/skul-private' ...
 
-After moving sensitive files into `/media/skul-private`, unmount and
-`luksClose` the container.
+After moving sensitive files into `/media/skul-private`:
+
+    skul close private
 
 
 License
