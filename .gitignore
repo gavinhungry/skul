@@ -1,0 +1,5 @@
+pkg/
+src/
+skul-git/
+*.pkg.tar*
+
