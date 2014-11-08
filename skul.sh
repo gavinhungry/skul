@@ -10,30 +10,15 @@
 
 [ ${_ABASH:-0} -ne 0 ] || source $(dirname "${BASH_SOURCE}")/abash/abash.sh
 
-CHOWN=/usr/bin/chown
-CS=/usr/bin/cryptsetup
-DD=/usr/bin/dd
-EXT4=/usr/bin/mkfs.ext4
-SU=/usr/bin/sudo
-TRUNCATE=/usr/bin/truncate
-UDISKS=/usr/bin/udisks
-
-MAPPER=/dev/mapper
-NULL=/dev/null
-ZERO=/dev/zero
-
-# defaults
 CIPHER=${SKUL_CIPHER:-aes-xts-plain64}
 KEYSIZE=${SKUL_KEYSIZE:-256}
 HASH=${SKUL_HASH:-sha512}
 ITER=${SKUL_ITER:-4000}
 
+MAPPER=/dev/mapper
+
 clean() {
   echo $1 | sed -e 's/[^[:alnum:]]/_/g' | tr -s '_' | tr A-Z a-z
-}
-
-checksu() {
-  $SU -v || exit 1
 }
 
 create() {
@@ -48,14 +33,14 @@ create() {
 
   inform "Using $CIPHER ${KEYSIZE}-bit $HASH"
   inform "Creating container '$CONTAINER'"
-  $TRUNCATE -s ${SIZE}M $CONTAINER
+  truncate -s ${SIZE}M $CONTAINER
   [ $? -eq 0 ] || error 'Error creating container'
 
   inform "Encrypting container '$CONTAINER'"
   if [ -n "$KEY" ]; then
-    $SU $CS luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER -d "$KEY"
+    checksu cryptsetup luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER -d "$KEY"
   else
-    $SU $CS luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER
+    checksu cryptsetup luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER
   fi
   [ $? -eq 0 ] || error 'Error encrypting container'
 
@@ -70,9 +55,9 @@ open() {
 
   inform "Opening container '$CONTAINER'"
   if [ -n "$KEY" ]; then
-    $SU $CS luksOpen $CONTAINER $MAPID -d "$KEY"
+    checksu cryptsetup luksOpen $CONTAINER $MAPID -d "$KEY"
   else
-    $SU $CS luksOpen $CONTAINER $MAPID
+    checksu cryptsetup luksOpen $CONTAINER $MAPID
   fi
   [ $? -eq 0 ] || error 'Error opening container'
 }
@@ -81,33 +66,33 @@ mount() {
   checksu
 
   inform "Mounting '$MAPID'"
-  $SU $UDISKS --mount $MAPPED
+  checksu udisks --mount $MAPPED
   [ $? -eq 0 ] || error 'Error mounting'
 
-  MOUNTPOINT=$($UDISKS --show-info $MAPPED | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
+  MOUNTPOINT=$(udisks --show-info $MAPPED | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
   inform "Setting mountpoint permissions on '$MOUNTPOINT'"
   USER=$(id -u -n)
   GROUP=$(id -g -n)
-  $SU $CHOWN $USER:$GROUP $MOUNTPOINT
+  checksu chown $USER:$GROUP $MOUNTPOINT
 }
 
 wipe() {
   checksu
 
   inform "Writing encrypted zeroes to '$MAPID'"
-  $SU $DD if=$ZERO of=$MAPPED bs=1M
+  checksu dd if=/dev/zero of=$MAPPED bs=1M
   # [ $? -eq 0 ] || error 'Error writing encrypted zeros'
 
   inform "Creating filesytem on '$MAPID'"
-  $SU $EXT4 $MAPPED -L $MAPID
+  checksu mkfs.ext4 $MAPPED -L $MAPID
   [ $? -eq 0 ] || error 'Error creating filesystem'
 }
 
 close() {
   checksu
 
-  $SU $UDISKS --unmount $MAPPED &> $NULL
-  $SU $CS luksClose $MAPPED
+  checksu udisks --unmount $MAPPED &> /dev/null
+  checksu cryptsetup luksClose $MAPPED
 }
 
 if [ $# -lt 2 ]; then
