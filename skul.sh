@@ -23,10 +23,10 @@ NULL=/dev/null
 ZERO=/dev/zero
 
 # defaults
-CIPHER=aes-xts-plain64
-KEYSIZE=256
-HASH=sha512
-ITER=4000
+CIPHER=${SKUL_CIPHER:-aes-xts-plain64}
+KEYSIZE=${SKUL_KEYSIZE:-256}
+HASH=${SKUL_HASH:-sha512}
+ITER=${SKUL_ITER:-4000}
 
 clean() {
   echo $1 | sed -e 's/[^[:alnum:]]/_/g' | tr -s '_' | tr A-Z a-z
