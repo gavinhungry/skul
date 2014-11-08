@@ -8,6 +8,8 @@
 # https://github.com/gavinhungry/skul
 #
 
+[ ${_ABASH:-0} -ne 0 ] || source $(dirname "${BASH_SOURCE}")/abash/abash.sh
+
 CHOWN=/usr/bin/chown
 CS=/usr/bin/cryptsetup
 DD=/usr/bin/dd
@@ -25,40 +27,6 @@ CIPHER=aes-xts-plain64
 KEYSIZE=256
 HASH=sha512
 ITER=4000
-
-msg() {
-  case $1 in
-    'red')    color=31 ;;
-    'green')  color=32 ;;
-    'white')  color=37 ;;
-    '*')      color=37 ;; # default to white
-  esac
-
-  TITLE=$2
-  MSG=$3
-
-  if [ -z "$MSG" ]; then
-    TITLE=$(basename $0)
-    MSG=$2
-  fi
-
-  [ -n "$MSG" ] && echo -e "\e[1;${color}m${TITLE}\e[0m: ${MSG}"
-}
-
-usage() {
-  msg white usage "$(basename $0) $@"
-  error
-}
-
-inform() {
-  echo
-  msg green "$@ ..."
-}
-
-error() {
-  msg red "$@"
-  exit 1
-}
 
 clean() {
   echo $1 | sed -e 's/[^[:alnum:]]/_/g' | tr -s '_' | tr A-Z a-z

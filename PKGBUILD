@@ -19,6 +19,12 @@ pkgver () {
 
 package() {
   cd "${srcdir}/${pkgname}"
+  git submodule init
+  git submodule update
+
   mkdir -p ${pkgdir}/usr/bin
-  install -m 755 skul.sh ${pkgdir}/usr/bin/skul
+
+  install -m 755 abash/abash.sh ${pkgdir}/usr/bin/skul
+  echo >> ${pkgdir}/usr/bin/skul
+  cat skul.sh >> ${pkgdir}/usr/bin/skul
 }
