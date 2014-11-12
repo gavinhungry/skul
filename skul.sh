@@ -11,7 +11,7 @@
 [ ${_ABASH:-0} -ne 0 ] || source $(dirname "${BASH_SOURCE}")/abash/abash.sh
 
 CIPHER=${SKUL_CIPHER:-aes-xts-plain64}
-KEYSIZE=${SKUL_KEYSIZE:-256}
+KEYSIZE=${SKUL_KEYSIZE:-512}
 HASH=${SKUL_HASH:-sha512}
 ITER=${SKUL_ITER:-4000}
 
