@@ -3,14 +3,12 @@ skul
 Create, format and mount loopback-based, encrypted
 [LUKS](https://code.google.com/p/cryptsetup) containers.
 
-
 Environment Variables
 ---------------------
   - `SKUL_CIPHER`: Defaults to `aes-xts-plain64`
   - `SKUL_KEYSIZE`: Defaults to `256`
   - `SKUL_HASH`: Defaults to `sha512`
   - `SKUL_ITER`: Defaults to `4000`
-
 
 Usage
 -----
@@ -29,8 +27,7 @@ Usage
 
 After moving sensitive files into `/media/skul-private`:
 
-    skul close private
-
+    $ skul close private
 
 License
 -------
