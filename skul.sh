@@ -23,26 +23,42 @@ clean() {
 
 create() {
   checksu
-  SIZE=$1
-  KEY=$2
+  SIZE=$(arg size)
+  KEY=$(arg keyfile:k)
+  HEADER=$(arg header:h)
 
-  [ -e $CONTAINER ] && error "Container '$CONTAINER' already exists"
-  [ -b $MAPPED ] && error "$MAPPED is already mapped"
-  [ "$KEY" == "$CONTAINER" ] && error 'Key and container cannot be the same file'
-  [[ "$KEY" && ( ! -f "$KEY" || ! -r "$KEY" ) ]] && error 'Cannot read key'
+  [ -e $CONTAINER ] && die "Container '$CONTAINER' already exists"
+  [[ $HEADER && ( -e $HEADER ) ]] && die 'Detached header already exists'
+  [ -b $MAPPED ] && die "$MAPPED is already mapped"
+  [ "$KEY" == "$CONTAINER" ] && die 'Keyfile and container cannot be the same file'
+  [ "$HEADER" == "$CONTAINER" ] && die 'Detached header and container cannot be the same file'
+  [[ -n "$KEY" && ( "$HEADER" == "$KEY" ) ]] && die 'Keyfile and detached header cannot be the same file'
+  [[ -n "$KEY" && ( ! -f "$KEY" || ! -r "$KEY" ) ]] && die 'Cannot read keyfile'
 
   inform "Using $CIPHER ${KEYSIZE}-bit $HASH"
   inform "Creating container '$CONTAINER'"
   truncate -s ${SIZE}M $CONTAINER
-  [ $? -eq 0 ] || error 'Error creating container'
+  [ $? -eq 0 ] || die 'Error creating container'
 
   inform "Encrypting container '$CONTAINER'"
-  if [ -n "$KEY" ]; then
-    checksu cryptsetup luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER -d "$KEY"
-  else
-    checksu cryptsetup luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER
+  CMD="checksu cryptsetup luksFormat $CONTAINER -c $CIPHER -s $KEYSIZE -h $HASH -i $ITER"
+
+  [ -n "$KEY" ] && CMD+=" -d $KEY"
+  if [ -n "$HEADER" ]; then
+    truncate -s 16M $HEADER
+    CMD+=" --header $HEADER"
   fi
-  [ $? -eq 0 ] || error 'Error encrypting container'
+
+  eval $CMD
+  [ $? -eq 0 ] || die 'Error encrypting container'
+
+  inform "Truncating detached header"
+  if [[ -n "$HEADER" && -e "$HEADER" ]]; then
+    TMPHEADER=".${HEADER}.skultmp-${$}"
+    mv $HEADER $TMPHEADER
+    checksu cryptsetup luksHeaderBackup $TMPHEADER --header-backup-file $HEADER
+    rm -f $TMPHEADER
+  fi
 
   open $KEY
   wipe
@@ -51,15 +67,17 @@ create() {
 
 open() {
   checksu
-  KEY=$1
+  KEY=$(arg keyfile)
+  HEADER=$(arg header)
 
   inform "Opening container '$CONTAINER'"
-  if [ -n "$KEY" ]; then
-    checksu cryptsetup luksOpen $CONTAINER $MAPID -d "$KEY"
-  else
-    checksu cryptsetup luksOpen $CONTAINER $MAPID
-  fi
-  [ $? -eq 0 ] || error 'Error opening container'
+  CMD="checksu cryptsetup luksOpen $CONTAINER $MAPID"
+
+  [ -n "$KEY" ] && CMD+=" -d $KEY"
+  [ -n "$HEADER" ] && CMD+=" --header $HEADER"
+
+  eval $CMD
+  [ $? -eq 0 ] || die 'Error opening container'
 }
 
 mount() {
@@ -67,7 +85,7 @@ mount() {
 
   inform "Mounting '$MAPID'"
   checksu udisks --mount $MAPPED
-  [ $? -eq 0 ] || error 'Error mounting'
+  [ $? -eq 0 ] || die 'Error mounting'
 
   MOUNTPOINT=$(udisks --show-info $MAPPED | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
   inform "Setting mountpoint permissions on '$MOUNTPOINT'"
@@ -81,11 +99,11 @@ wipe() {
 
   inform "Writing encrypted zeroes to '$MAPID'"
   checksu dd if=/dev/zero of=$MAPPED bs=1M
-  # [ $? -eq 0 ] || error 'Error writing encrypted zeros'
+  # [ $? -eq 0 ] || die 'Error writing encrypted zeros'
 
   inform "Creating filesytem on '$MAPID'"
   checksu mkfs.ext4 $MAPPED -L $MAPID
-  [ $? -eq 0 ] || error 'Error creating filesystem'
+  [ $? -eq 0 ] || die 'Error creating filesystem'
 }
 
 close() {
@@ -96,7 +114,7 @@ close() {
 }
 
 if [ $# -lt 2 ]; then
-  usage '[create|open|close] FILENAME [SIZE] [KEYFILE]'
+  usage '[create|open|close] FILENAME [--size SIZE] [--keyfile KEYFILE] [--header HEADERFILE]'
   exit 1
 fi
 
@@ -105,7 +123,7 @@ MAPID="skul-$(clean $CONTAINER)"
 MAPPED=$MAPPER/$MAPID
 
 case $1 in
-  'create') create $3 $4 ;;
-  'open') open $3; mount $3 ;;
+  'create') create ;;
+  'open') open && mount ;;
   'close') close ;;
 esac
