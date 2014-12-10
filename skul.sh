@@ -114,7 +114,7 @@ close() {
 }
 
 if [ $# -lt 2 ]; then
-  usage '[create|open|close] FILENAME [--size SIZE] [--keyfile KEYFILE] [--header HEADERFILE]'
+  usage '[create|open|close] FILENAME [--size|-s SIZE] [--keyfile|-k KEYFILE] [--header|-h HEADERFILE]'
   exit 1
 fi
 

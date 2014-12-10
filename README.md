@@ -13,10 +13,13 @@ Environment Variables
 Usage
 -----
     $ skul
-    usage: skul [create|open|close] FILENAME [SIZE] [KEYFILE]
+    usage: skul.sh [create|open|close] FILENAME
+      [--size|-s SIZE]
+      [--keyfile|-k KEYFILE]
+      [--header|-h HEADERFILE]
 
     # Create a 128MB LUKS container named 'private'
-    $ skul create private 128
+    $ skul create private --size 128
 
     skul: Creating container 'private' ...
     skul: Encrypting container 'private' ...
