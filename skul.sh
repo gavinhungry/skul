@@ -24,8 +24,8 @@ clean() {
 create() {
   checksu
   SIZE=$(arg size)
-  KEY=$(arg keyfile:k)
-  HEADER=$(arg header:h)
+  KEY=$(arg keyfile)
+  HEADER=$(arg header)
 
   [ -e $CONTAINER ] && die "Container '$CONTAINER' already exists"
   [[ $HEADER && ( -e $HEADER ) ]] && die 'Detached header already exists'
