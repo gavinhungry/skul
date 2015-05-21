@@ -113,8 +113,12 @@ close() {
   checksu cryptsetup luksClose $MAPPED
 }
 
+info() {
+  cryptsetup luksDump $CONTAINER
+}
+
 if [ $# -lt 2 ]; then
-  usage '[create|open|close] FILENAME [--size|-s SIZE] [--keyfile|-k KEYFILE] [--header|-h HEADERFILE]'
+  usage '[create|open|close|info] FILENAME [--size|-s SIZE] [--keyfile|-k KEYFILE] [--header|-h HEADERFILE]'
   exit 1
 fi
 
@@ -126,4 +130,5 @@ case $1 in
   'create') create ;;
   'open') open && mount ;;
   'close') close ;;
+  'info') info ;;
 esac

@@ -6,14 +6,14 @@ Create, format and mount loopback-based, encrypted
 Environment Variables
 ---------------------
   - `SKUL_CIPHER`: Defaults to `aes-xts-plain64`
-  - `SKUL_KEYSIZE`: Defaults to `256`
+  - `SKUL_KEYSIZE`: Defaults to `512`
   - `SKUL_HASH`: Defaults to `sha512`
   - `SKUL_ITER`: Defaults to `4000`
 
 Usage
 -----
     $ skul
-    usage: skul.sh [create|open|close] FILENAME
+    usage: skul.sh [create|open|close|info] FILENAME
       [--size|-s SIZE]
       [--keyfile|-k KEYFILE]
       [--header|-h HEADERFILE]
