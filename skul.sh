@@ -84,7 +84,7 @@ mount() {
   checksu
 
   inform "Mounting '$MAPID'"
-  checksu udisks --mount $MAPPED
+  quietly checksu udisks --mount $MAPPED
   [ $? -eq 0 ] || die 'Error mounting'
 
   MOUNTPOINT=$(udisks --show-info $MAPPED | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
@@ -98,11 +98,11 @@ wipe() {
   checksu
 
   inform "Writing encrypted zeroes to '$MAPID'"
-  checksu dd if=/dev/zero of=$MAPPED bs=1M
+  quietly checksu dd if=/dev/zero of=$MAPPED bs=1M
   # [ $? -eq 0 ] || die 'Error writing encrypted zeros'
 
   inform "Creating filesytem on '$MAPID'"
-  checksu mkfs.ext4 $MAPPED -L $MAPID
+  quietly checksu mkfs.ext4 $MAPPED -L $MAPID
   [ $? -eq 0 ] || die 'Error creating filesystem'
 }
 
