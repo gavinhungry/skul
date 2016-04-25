@@ -84,10 +84,10 @@ mount() {
   checksu
 
   inform "Mounting '$MAPID'"
-  quietly checksu udisks --mount $MAPPED
+  quietly checksu udisksctl mount -b $MAPPED
   [ $? -eq 0 ] || die 'Error mounting'
 
-  MOUNTPOINT=$(udisks --show-info $MAPPED | grep 'mount paths:' | sed s/^\ *mount.paths:\ *//g)
+  MOUNTPOINT=$(udisksctl info -b $MAPPED 2> /dev/null | grep MountPoints | cut -d':' -f2 | sed 's/^\s*//')
   inform "Setting mountpoint permissions on '$MOUNTPOINT'"
   USER=$(id -u -n)
   GROUP=$(id -g -n)
@@ -109,7 +109,7 @@ wipe() {
 close() {
   checksu
 
-  checksu udisks --unmount $MAPPED &> /dev/null
+  checksu udisksctl unmount -b $MAPPED &> /dev/null
   checksu cryptsetup luksClose $MAPPED
 }
 
